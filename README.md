@@ -50,6 +50,14 @@ sections before using this on a production server.
 - Installer preflight, conflict detection and timestamped backups.
 - No changes to any global `php.ini`.
 
+## Screenshot
+
+[![myVesta domain PHP-FPM configuration page](docs/assets/domain-php-config.png)](docs/assets/domain-php-config.png)
+
+The screenshot is rendered from the actual myVesta template and stylesheet using
+fully synthetic documentation data. It contains no production domain, hostname,
+account name, IP address or measured server value.
+
 ## Project status
 
 Version `0.1.0` is a beta build already deployed on a real myVesta server. Debian
