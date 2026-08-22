@@ -18,18 +18,19 @@ effective PHP settings, compare them with suggestions calculated specifically fo
 that server, and save validated per-domain overrides.
 
 > [!IMPORTANT]
-> There is no published GitHub release yet. Clone the repository or download the
-> ZIP from GitHub, inspect the source, and run the installer locally. Do not install
-> it through an unaudited `curl | bash` command.
+> `v0.2.0-beta` is the first public pre-release. Install the immutable tagged
+> version, inspect the source, and run the installer locally. Do not install it
+> through an unaudited `curl | bash` command.
 
 ## Quick start
 
-Clone the public repository and run the preflight before installing:
+Clone the published beta tag and run the preflight before installing:
 
 ```bash
 mkdir -p "$HOME/src"
 cd "$HOME/src"
-git clone https://github.com/tts-empire/myvestacp-domain-php-config.git
+git clone --branch v0.2.0-beta --depth 1 \
+  https://github.com/tts-empire/myvestacp-domain-php-config.git
 cd myvestacp-domain-php-config
 sudo ./install.sh --dry-run
 sudo ./install.sh
@@ -69,14 +70,15 @@ documentation annotation and does not appear in the installed panel.
 
 ## Project status
 
-Version `0.2.0-beta` is deployed and live-verified on Debian 10. Debian 11 and 12
-run the same static, transaction and complete lifecycle suite in CI containers;
-they are not described as live-verified until the extension has completed a real
-installation on those operating systems. Locally modified myVesta templates can
-still differ, so always run the preflight.
+Version `0.2.0-beta` is published as a GitHub pre-release, deployed and
+live-verified on Debian 10. Debian 11 and 12 run the same static, transaction and
+complete lifecycle suite in CI containers; they are not described as
+live-verified until the extension has completed a real installation on those
+operating systems. Locally modified myVesta templates can still differ, so always
+run the preflight.
 
-There is currently no tagged GitHub release or packaged `.deb`. Installation uses
-a repository checkout or downloaded ZIP. After installation, the lifecycle state
+There is currently no packaged `.deb`. Installation uses the checksummed release
+archive or an exact tagged Git checkout. After installation, the lifecycle state
 and exact reverse patches are self-contained under
 `/var/lib/myvesta-domain-php-config/install/`; uninstall does not depend on the
 original checkout.
@@ -98,38 +100,39 @@ as supported. See the complete [compatibility matrix](docs/compatibility.md).
 
 ## Download
 
-Choose one method. Run the download as your normal administrative account and use
-`sudo` only for the installation commands.
+Open the [`v0.2.0-beta` release page](https://github.com/tts-empire/myvestacp-domain-php-config/releases/tag/v0.2.0-beta)
+to review the release notes and assets. Choose one download method below. Run the
+download as your normal administrative account and use `sudo` only for the
+installation commands.
 
-### Option A: clone with Git (recommended)
+### Option A: checksummed release archive (recommended)
+
+Download the versioned archive and its SHA-256 checksum, verify it, and extract
+it:
+
+```bash
+mkdir -p "$HOME/src"
+cd "$HOME/src"
+curl -fLO https://github.com/tts-empire/myvestacp-domain-php-config/releases/download/v0.2.0-beta/myvestacp-domain-php-config-v0.2.0-beta.tar.gz
+curl -fLO https://github.com/tts-empire/myvestacp-domain-php-config/releases/download/v0.2.0-beta/myvestacp-domain-php-config-v0.2.0-beta.tar.gz.sha256
+sha256sum --check myvestacp-domain-php-config-v0.2.0-beta.tar.gz.sha256
+tar -xzf myvestacp-domain-php-config-v0.2.0-beta.tar.gz
+cd myvestacp-domain-php-config-v0.2.0-beta
+```
+
+The checksum command must report `OK`. Stop if it does not.
+
+### Option B: clone the exact Git tag
 
 Clone the repository into a working directory:
 
 ```bash
 mkdir -p "$HOME/src"
 cd "$HOME/src"
-git clone https://github.com/tts-empire/myvestacp-domain-php-config.git
+git clone --branch v0.2.0-beta --depth 1 \
+  https://github.com/tts-empire/myvestacp-domain-php-config.git
 cd myvestacp-domain-php-config
 ```
-
-### Option B: download the ZIP from GitHub
-
-1. Open the repository on GitHub.
-2. Select **Code → Download ZIP**.
-3. Copy the ZIP to the myVesta server with SFTP or `scp`.
-4. Ensure `unzip` is installed, extract the archive into a working directory and
-   enter the project folder:
-
-```bash
-mkdir -p "$HOME/src"
-unzip myvestacp-domain-php-config-main.zip -d "$HOME/src"
-mv "$HOME/src/myvestacp-domain-php-config-main" \
-  "$HOME/src/myvestacp-domain-php-config"
-cd "$HOME/src/myvestacp-domain-php-config"
-```
-
-If GitHub gives the extracted folder a different suffix, use that actual folder
-name in the `mv` command.
 
 ## Installation
 
@@ -218,20 +221,24 @@ back the pool and saved state if validation or restart fails.
 
 ## Updating
 
-For a Git checkout, update the source and run the same preflight before upgrading:
+Choose the new version from the project's GitHub Releases page. For a Git
+checkout, fetch the tags, check out the exact new release tag, and run the same
+preflight before upgrading. Replace the example tag with the release being
+installed:
 
 ```bash
 cd "$HOME/src/myvestacp-domain-php-config"
-git pull --ff-only
+git fetch --tags --prune
+git checkout --detach v0.2.0-beta
 sudo ./upgrade.sh --dry-run
 sudo ./upgrade.sh
 sudo /usr/local/vesta/bin/v-check-domain-php-config-patch
 ```
 
-For a ZIP installation, download and extract the new version into a separate
-directory, enter it, and run the three `upgrade.sh` and verification commands
-above. The new checkout does not need to reuse the installation path of an older
-version.
+For a release archive or ZIP installation, download and extract the new version
+into a separate directory, enter it, and run the three `upgrade.sh` and
+verification commands above. The new source directory does not need to reuse the
+installation path of an older version.
 
 Each installation or upgrade performs an internal mandatory preflight, creates a
 new timestamped backup and restores all changed targets if a patch, copy or final
@@ -300,10 +307,13 @@ available.
 
 ## Support and contributions
 
-Use the repository's GitHub Issues section for reproducible bugs and compatibility
-reports. Include the Debian release, myVesta version or commit, enabled PHP-FPM
-versions, the preflight output and the verification output. Remove hostnames,
-credentials and other private server data before posting.
+Use the dedicated GitHub forms to submit a
+[reproducible bug](https://github.com/tts-empire/myvestacp-domain-php-config/issues/new?template=bug_report.yml)
+or a
+[compatibility report](https://github.com/tts-empire/myvestacp-domain-php-config/issues/new?template=compatibility_report.yml).
+Include the Debian release, myVesta version or commit, enabled PHP-FPM versions,
+the preflight output and the verification output. Remove hostnames, usernames,
+IP addresses, credentials and other private server data before posting.
 
 Pull requests should preserve myVesta's existing visual and command conventions,
 remain compatible with the supported Debian matrix, and include relevant static or

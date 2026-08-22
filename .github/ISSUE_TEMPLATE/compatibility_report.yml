@@ -1,0 +1,141 @@
+name: Compatibility report
+description: Report a successful or failed test on a specific myVesta environment
+title: "[Compatibility]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Compatibility reports help turn CI coverage into verified real-server
+        support. Both successful and failed tests are useful.
+
+        Remove hostnames, domain names, usernames, IP addresses, credentials, API
+        keys, cookies and all other private server data before submitting.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed all sensitive server and customer data from this report.
+          required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Test result
+      options:
+        - Successful installation and health check
+        - Successful upgrade and health check
+        - Preflight rejected the environment safely
+        - Installation or upgrade rolled back safely
+        - Installation or upgrade failed without a complete rollback
+    validations:
+      required: true
+
+  - type: dropdown
+    id: debian
+    attributes:
+      label: Debian release
+      options:
+        - Debian 10
+        - Debian 11
+        - Debian 12
+        - Unsupported or other
+    validations:
+      required: true
+
+  - type: input
+    id: architecture
+    attributes:
+      label: Server architecture
+      placeholder: x86_64
+    validations:
+      required: true
+
+  - type: input
+    id: myvesta_version
+    attributes:
+      label: myVesta version or commit
+      description: Provide the installed myVesta version, update date or Git commit when available.
+    validations:
+      required: true
+
+  - type: input
+    id: extension_version
+    attributes:
+      label: Extension version
+      placeholder: v0.2.0-beta
+    validations:
+      required: true
+
+  - type: input
+    id: php_versions
+    attributes:
+      label: Installed PHP-FPM versions
+      placeholder: 7.4, 8.1, 8.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation_type
+    attributes:
+      label: Installation type
+      options:
+        - Fresh installation
+        - Upgrade from 0.1.0
+        - Reinstallation of the same version
+        - Other upgrade
+    validations:
+      required: true
+
+  - type: textarea
+    id: preflight
+    attributes:
+      label: Sanitized preflight output
+      description: Paste the complete output of sudo ./install.sh --dry-run.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: installation
+    attributes:
+      label: Sanitized installation or upgrade output
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: health
+    attributes:
+      label: Sanitized health-check output
+      description: Paste the complete output of v-check-domain-php-config-patch.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: panel
+    attributes:
+      label: Panel verification
+      options:
+        - PHP action and settings page both work
+        - PHP action appears but the settings page fails
+        - PHP action is missing
+        - Not tested
+    validations:
+      required: true
+
+  - type: textarea
+    id: modifications
+    attributes:
+      label: Local myVesta modifications
+      description: Describe locally modified templates, commands or integrations.
+      placeholder: None known
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional sanitized notes
+      description: Include warnings, rollback behavior or other useful observations.
+

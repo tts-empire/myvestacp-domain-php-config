@@ -1,0 +1,140 @@
+name: Bug report
+description: Report a reproducible defect in the extension
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve the extension.
+
+        Before submitting, remove hostnames, domain names, usernames, IP addresses,
+        credentials, API keys, cookies and any other private server data from all
+        text and command output.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preliminary checks
+      options:
+        - label: I am reporting a problem with this extension, not a general myVesta or PHP issue.
+          required: true
+        - label: I searched the existing issues for the same problem.
+          required: true
+        - label: I removed all sensitive server and customer data from this report.
+          required: true
+
+  - type: dropdown
+    id: debian
+    attributes:
+      label: Debian release
+      options:
+        - Debian 10
+        - Debian 11
+        - Debian 12
+        - Unsupported or other
+    validations:
+      required: true
+
+  - type: input
+    id: architecture
+    attributes:
+      label: Server architecture
+      description: For example, x86_64 or aarch64.
+      placeholder: x86_64
+    validations:
+      required: true
+
+  - type: input
+    id: myvesta_version
+    attributes:
+      label: myVesta version or commit
+      description: Provide the installed myVesta version, update date or Git commit when available.
+    validations:
+      required: true
+
+  - type: input
+    id: extension_version
+    attributes:
+      label: Extension version
+      placeholder: v0.2.0-beta
+    validations:
+      required: true
+
+  - type: input
+    id: php_versions
+    attributes:
+      label: Installed PHP-FPM versions
+      placeholder: 7.4, 8.1, 8.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operation
+    attributes:
+      label: Operation that failed
+      options:
+        - Installation preflight
+        - Installation
+        - Upgrade
+        - Panel page or save operation
+        - Domain rebuild or reapply
+        - Health check
+        - Uninstallation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: Explain what happened and which domain-independent conditions trigger it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the shortest sequence that reproduces the problem.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Select ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: preflight
+    attributes:
+      label: Sanitized preflight output
+      description: Paste the complete output of sudo ./install.sh --dry-run, with private data removed.
+      render: shell
+
+  - type: textarea
+    id: health
+    attributes:
+      label: Sanitized health-check output
+      description: Paste the output of v-check-domain-php-config-patch when available.
+      render: shell
+
+  - type: textarea
+    id: modifications
+    attributes:
+      label: Local myVesta modifications
+      description: Describe any locally modified panel templates, commands or PHP-FPM integration.
+      placeholder: None known
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional sanitized context
+      description: Add relevant logs or screenshots only after removing private data.
+
