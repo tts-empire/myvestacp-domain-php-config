@@ -1,3 +1,3 @@
 #!/bin/bash
-set -e
+set -Eeuo pipefail
 exec "$(dirname "$0")/install.sh" "$@"

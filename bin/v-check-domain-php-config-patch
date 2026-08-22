@@ -1,50 +1,83 @@
 #!/bin/bash
 set -u
+
+EXPECTED_RELEASE='0.2.0-beta'
 VESTA_ROOT="${VESTA_ROOT:-/usr/local/vesta}"
 STATE_ROOT="${MYVESTA_DOMAIN_PHP_STATE:-/var/lib/myvesta-domain-php-config}"
-
+PHP_ETC_ROOT="${MYVESTA_DOMAIN_PHP_ETC:-/etc/php}"
+ALLOW_CUSTOM_ROOT="${MYVESTA_DOMAIN_PHP_TEST_ALLOW_CUSTOM_ROOT:-no}"
+INSTALL_STATE="$STATE_ROOT/install"
 fail=0
-check() {
-    if "$@" >/tmp/myvesta-domain-php-check 2>&1; then
-        printf 'OK   %s\n' "$*"
+
+report_check() {
+    local label="$1"
+    shift
+    if "$@" >/dev/null 2>&1; then
+        printf 'OK   %s\n' "$label"
     else
-        printf 'FAIL %s\n' "$*"
+        printf 'FAIL %s\n' "$label"
         fail=1
     fi
 }
 
-[[ "$(id -u)" = 0 ]] && printf 'OK   running as root\n' || { printf 'FAIL running as root\n'; fail=1; }
-[[ -d "$VESTA_ROOT" ]] && printf 'OK   MyVesta root: %s\n' "$VESTA_ROOT" || { printf 'FAIL MyVesta root: %s\n' "$VESTA_ROOT"; fail=1; }
-check test -x "$VESTA_ROOT/bin/v-search-domain-owner"
-check test -x "$VESTA_ROOT/bin/v-get-php-version-of-domain"
-check test -x "$VESTA_ROOT/bin/v-rebuild-web-domains"
-check test -x "$VESTA_ROOT/bin/v-update-domain-php-config"
-check command -v flock
-check test -d /etc/php
-check test -d "$STATE_ROOT"
-for version_dir in /etc/php/*/fpm; do
+if [[ "$(id -u)" = 0 ]]; then
+    printf 'OK   running as root\n'
+else
+    printf 'FAIL running as root\n'
+    fail=1
+fi
+if [[ "$VESTA_ROOT" != /usr/local/vesta && "$ALLOW_CUSTOM_ROOT" != yes ]]; then
+    printf 'FAIL unsupported myVesta root: %s\n' "$VESTA_ROOT"
+    fail=1
+else
+    report_check "myVesta root: $VESTA_ROOT" test -d "$VESTA_ROOT"
+fi
+report_check 'v-search-domain-owner' test -x "$VESTA_ROOT/bin/v-search-domain-owner"
+report_check 'v-get-php-version-of-domain' test -x "$VESTA_ROOT/bin/v-get-php-version-of-domain"
+report_check 'v-rebuild-web-domains' test -x "$VESTA_ROOT/bin/v-rebuild-web-domains"
+report_check 'v-update-domain-php-config' test -x "$VESTA_ROOT/bin/v-update-domain-php-config"
+report_check 'installed uninstaller' test -x "$VESTA_ROOT/bin/v-uninstall-domain-php-config"
+report_check 'flock command' command -v flock
+report_check "PHP configuration root: $PHP_ETC_ROOT" test -d "$PHP_ETC_ROOT"
+report_check "state root: $STATE_ROOT" test -d "$STATE_ROOT"
+report_check 'installation-state schema 2' grep -qx 2 "$INSTALL_STATE/schema-version"
+report_check "installed release $EXPECTED_RELEASE" grep -qx "$EXPECTED_RELEASE" "$INSTALL_STATE/release"
+report_check 'installed patch manifest' test -s "$INSTALL_STATE/patches.manifest"
+report_check 'installed file manifest' test -s "$INSTALL_STATE/files.manifest"
+
+shopt -s nullglob
+version_directories=("$PHP_ETC_ROOT"/*/fpm)
+shopt -u nullglob
+if [[ ${#version_directories[@]} -eq 0 ]]; then
+    printf 'FAIL no PHP-FPM versions found\n'
+    fail=1
+fi
+for version_dir in "${version_directories[@]}"; do
     [[ -d "$version_dir" ]] || continue
     version="$(basename "$(dirname "$version_dir")")"
     pool_dir="$version_dir/pool.d"
     [[ -d "$pool_dir" ]] && printf 'OK   PHP %s FPM pool directory\n' "$version" || printf 'WARN PHP %s has no FPM pool directory\n' "$version"
-    if command -v "php-fpm${version}" >/tmp/myvesta-domain-php-check 2>&1 || [[ -x "/usr/sbin/php-fpm${version}" ]]; then
+    if command -v "php-fpm${version}" >/dev/null 2>&1 || [[ -x "/usr/sbin/php-fpm${version}" ]]; then
         printf 'OK   PHP %s FPM binary\n' "$version"
     else
         printf 'WARN PHP %s FPM binary not found\n' "$version"
     fi
 done
 
-if [[ -f "$VESTA_ROOT/web/templates/admin/edit_web.html" ]]; then
-    grep -q 'PHP Domain Configuration' "$VESTA_ROOT/web/templates/admin/edit_web.html" && printf 'OK   domain UI link installed\n' || printf 'WARN domain UI link not installed\n'
-else
-    printf 'FAIL admin edit_web template missing\n'
-    fail=1
-fi
-if [[ -f "$VESTA_ROOT/web/templates/admin/list_web.html" ]]; then
-    grep -q '/edit/domain-php-config/' "$VESTA_ROOT/web/templates/admin/list_web.html" && printf 'OK   admin domain-list action installed\n' || printf 'WARN admin domain-list action not installed\n'
-fi
-if [[ -f "$VESTA_ROOT/web/templates/user/list_web.html" ]]; then
-    grep -q '/edit/domain-php-config/' "$VESTA_ROOT/web/templates/user/list_web.html" && printf 'OK   user domain-list action installed\n' || printf 'WARN user domain-list action not installed\n'
-fi
+check_marker() {
+    local label="$1" file="$2" marker="$3"
+    if [[ -f "$file" ]] && grep -Fq "$marker" "$file"; then
+        printf 'OK   %s\n' "$label"
+    else
+        printf 'FAIL %s\n' "$label"
+        fail=1
+    fi
+}
+
+check_marker 'admin edit-web link installed' "$VESTA_ROOT/web/templates/admin/edit_web.html" 'PHP Domain Configuration'
+check_marker 'user edit-web link installed' "$VESTA_ROOT/web/templates/user/edit_web.html" 'PHP Domain Configuration'
+check_marker 'admin domain-list action installed' "$VESTA_ROOT/web/templates/admin/list_web.html" '/edit/domain-php-config/'
+check_marker 'user domain-list action installed' "$VESTA_ROOT/web/templates/user/list_web.html" '/edit/domain-php-config/'
+check_marker 'web-domain rebuild hook installed' "$VESTA_ROOT/bin/v-rebuild-web-domains" 'v-reapply-domain-php-config'
 
 exit "$fail"

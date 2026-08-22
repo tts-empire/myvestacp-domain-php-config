@@ -84,8 +84,8 @@ php_fpm_binary() {
     local version="$1"
     local binary
     for binary in "php-fpm${version}" "/usr/sbin/php-fpm${version}" "/usr/sbin/php-fpm"; do
-        if command -v "$binary" >/tmp/myvesta-domain-php-command-check 2>&1 || [[ -x "$binary" ]]; then
-            command -v "$binary" 2>/tmp/myvesta-domain-php-command-path || printf '%s\n' "$binary"
+        if command -v "$binary" >/dev/null 2>&1 || [[ -x "$binary" ]]; then
+            command -v "$binary" 2>/dev/null || printf '%s\n' "$binary"
             return 0
         fi
     done
@@ -205,7 +205,7 @@ write_fpm_ini_dump() {
     local destination="$2"
     local binary
     binary="$(php_fpm_binary "$version")" || return 1
-    "$binary" -i > "$destination" 2>/tmp/myvesta-domain-php-ini-dump
+    "$binary" -i > "$destination" 2>/dev/null
 }
 
 ini_setting_of() {
@@ -261,8 +261,8 @@ apply_domain_config() {
         render_managed_block "$domain" >> "$tmp"
     fi
     cp -a "$config" "$backup"
-    chmod --reference="$config" "$tmp" 2>/tmp/myvesta-domain-php-chmod || chmod 0644 "$tmp"
-    chown --reference="$config" "$tmp" 2>/tmp/myvesta-domain-php-chown || true
+    chmod --reference="$config" "$tmp" 2>/dev/null || chmod 0644 "$tmp"
+    chown --reference="$config" "$tmp" 2>/dev/null || true
     mv -f "$tmp" "$config"
 }
 
@@ -276,12 +276,12 @@ validate_domain_config() {
 restart_php_service() {
     local version="$1"
     local service="php${version}-fpm"
-    if command -v systemctl >/tmp/myvesta-domain-php-command-check 2>&1; then
-        systemctl restart "$service" >/tmp/myvesta-domain-php-restart 2>&1
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl restart "$service"
         return $?
     fi
-    if command -v service >/tmp/myvesta-domain-php-command-check 2>&1; then
-        service "$service" restart >/tmp/myvesta-domain-php-restart 2>&1
+    if command -v service >/dev/null 2>&1; then
+        service "$service" restart
         return $?
     fi
     return 1
@@ -290,9 +290,9 @@ restart_php_service() {
 recover_php_service() {
     local version="$1"
     local service="php${version}-fpm"
-    if command -v systemctl >/tmp/myvesta-domain-php-command-check 2>&1; then
-        systemctl reset-failed "$service" >/tmp/myvesta-domain-php-recover 2>&1 || true
-        systemctl restart "$service" >>/tmp/myvesta-domain-php-recover 2>&1
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl reset-failed "$service" >/dev/null 2>&1 || true
+        systemctl restart "$service"
         return $?
     fi
     restart_php_service "$version"

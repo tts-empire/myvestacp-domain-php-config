@@ -2,6 +2,7 @@
 set -e
 COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
 [[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+# shellcheck disable=SC1090
 source "$COMMON"
 
 user="${1:-}"

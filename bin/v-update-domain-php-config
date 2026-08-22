@@ -2,6 +2,7 @@
 set -e
 COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
 [[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+# shellcheck disable=SC1090
 source "$COMMON"
 
 domain="${1:-}"
@@ -45,13 +46,13 @@ while [[ $# -gt 0 ]]; do
     values+=("$value")
 done
 
-resolve_domain "$domain" >/tmp/myvesta-domain-php-resolve
+resolve_domain "$domain" >/dev/null
 version="$(php_version_of "$domain")"
 [[ -n "$version" ]] || die "PHP version could not be determined for $domain"
 service_exists "$version" || die "PHP-FPM service is not installed: php${version}-fpm"
 config="$(config_file_of "$domain" "$version")"
 [[ -f "$config" ]] || die "FPM pool does not exist: $config"
-command -v flock >/tmp/myvesta-domain-php-command-check 2>&1 || die "flock command is required"
+command -v flock >/dev/null 2>&1 || die "flock command is required"
 
 ensure_state
 state_file="$(state_file_of "$domain")"
@@ -62,6 +63,9 @@ flock -x 9 || die "cannot lock PHP configuration for $domain"
 transaction_dir="$(mktemp -d "$STATE_ROOT/.transaction.XXXXXX")" || die "cannot create transaction directory"
 pool_backup="$transaction_dir/pool.conf"
 state_backup="$transaction_dir/state.conf"
+validation_log="$transaction_dir/php-fpm-validation.log"
+restart_log="$transaction_dir/php-fpm-restart.log"
+rollback_log="$transaction_dir/rollback.log"
 cp -a -- "$config" "$pool_backup"
 state_existed=no
 if [[ -f "$state_file" ]]; then
@@ -75,13 +79,13 @@ finish_transaction() {
     local status=$?
     trap - EXIT INT TERM HUP
     if [[ "$committed" != yes ]]; then
-        cp -a -- "$pool_backup" "$config" 2>/tmp/myvesta-domain-php-rollback || true
+        cp -a -- "$pool_backup" "$config" 2>"$rollback_log" || true
         if [[ "$state_existed" = yes ]]; then
-            cp -a -- "$state_backup" "$state_file" 2>>/tmp/myvesta-domain-php-rollback || true
+            cp -a -- "$state_backup" "$state_file" 2>>"$rollback_log" || true
         else
             rm -f -- "$state_file"
         fi
-        if [[ "$restart_attempted" = yes ]] && ! recover_php_service "$version"; then
+        if [[ "$restart_attempted" = yes ]] && ! recover_php_service "$version" >>"$rollback_log" 2>&1; then
             echo "ERROR: PHP-FPM recovery failed after rollback: php${version}-fpm" >&2
         fi
     fi
@@ -101,19 +105,18 @@ for index in "${!actions[@]}"; do
 done
 
 apply_domain_config "$domain" "$version"
-if ! validate_domain_config "$version" >/tmp/myvesta-domain-php-config.validate 2>&1; then
-    cat /tmp/myvesta-domain-php-config.validate >&2
+if ! validate_domain_config "$version" >"$validation_log" 2>&1; then
+    cat "$validation_log" >&2
     die "PHP-FPM validation failed; state and pool will be restored"
 fi
 
 if [[ "$restart" = yes ]]; then
     restart_attempted=yes
-    if ! restart_php_service "$version"; then
-        cat /tmp/myvesta-domain-php-restart >&2
+    if ! restart_php_service "$version" >"$restart_log" 2>&1; then
+        cat "$restart_log" >&2
         die "PHP-FPM restart failed; state and pool will be restored"
     fi
 fi
 
 committed=yes
-rm -f /tmp/myvesta-domain-php-config.validate
 printf 'PHP configuration updated for %s (PHP %s): %s operation(s)\n' "$domain" "$version" "${#actions[@]}"

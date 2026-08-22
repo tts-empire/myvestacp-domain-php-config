@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  push:
+    branches: [main, "hardening/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  debian-matrix:
+    name: Debian ${{ matrix.debian }}
+    runs-on: ubuntu-latest
+    container: debian:${{ matrix.debian }}
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [10, 11, 12]
+
+    steps:
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -e
+          if grep -q 'VERSION_ID="10"' /etc/os-release; then
+            printf '%s\n' \
+              'deb http://archive.debian.org/debian buster main' \
+              'deb http://archive.debian.org/debian-security buster/updates main' \
+              > /etc/apt/sources.list
+            apt-get -o Acquire::Check-Valid-Until=false update
+          else
+            apt-get update
+          fi
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            bash ca-certificates coreutils findutils gawk git grep patch php-cli sed util-linux
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run static, transaction and lifecycle tests
+        shell: bash
+        run: tests/test-static.sh

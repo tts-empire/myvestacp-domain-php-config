@@ -1,7 +1,8 @@
 # myVesta Domain PHP Config
 
-[![Version](https://img.shields.io/badge/version-0.1.0-0969da.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.0--beta-0969da.svg)](CHANGELOG.md)
 [![Project status](https://img.shields.io/badge/status-beta-f59e0b.svg)](#project-status)
+[![Tests](https://github.com/tts-empire/myvestacp-domain-php-config/actions/workflows/test.yml/badge.svg)](https://github.com/tts-empire/myvestacp-domain-php-config/actions/workflows/test.yml)
 [![myVesta](https://img.shields.io/badge/myVesta-extension-2f363d.svg)](https://myvestacp.com/)
 [![Debian](https://img.shields.io/badge/Debian-10%20%7C%2011%20%7C%2012-a81d33.svg?logo=debian&logoColor=white)](docs/compatibility.md)
 [![PHP-FPM](https://img.shields.io/badge/PHP--FPM-auto--detected-777bb4.svg?logo=php&logoColor=white)](#compatibility)
@@ -47,7 +48,8 @@ sections before using this on a production server.
 - Per-domain PHP and PHP-FPM overrides stored outside generated pool files.
 - Automatic reapplication after myVesta rebuilds web-domain configuration.
 - Transactional validation, rollback and at most one PHP-FPM restart per save.
-- Installer preflight, conflict detection and timestamped backups.
+- Transactional installer, upgrade and uninstall with mandatory preflight,
+  timestamped backups and automatic rollback.
 - No changes to any global `php.ini`.
 
 ## Screenshot
@@ -67,14 +69,17 @@ documentation annotation and does not appear in the installed panel.
 
 ## Project status
 
-Version `0.1.0` is a beta build already deployed on a real myVesta server. Debian
-10, 11 and 12 are included in the compatibility matrix, but myVesta versions and
-locally modified panel templates can differ. Always run the preflight before the
-installer.
+Version `0.2.0-beta` is deployed and live-verified on Debian 10. Debian 11 and 12
+run the same static, transaction and complete lifecycle suite in CI containers;
+they are not described as live-verified until the extension has completed a real
+installation on those operating systems. Locally modified myVesta templates can
+still differ, so always run the preflight.
 
 There is currently no tagged GitHub release or packaged `.deb`. Installation uses
-a repository checkout. Keep that checkout in its original location: the current
-uninstaller uses the installed manifest to locate the original reverse patches.
+a repository checkout or downloaded ZIP. After installation, the lifecycle state
+and exact reverse patches are self-contained under
+`/var/lib/myvesta-domain-php-config/install/`; uninstall does not depend on the
+original checkout.
 
 ## Compatibility
 
@@ -82,7 +87,7 @@ uninstaller uses the installed manifest to locate the original reverse patches.
 | --- | --- |
 | Operating system | Debian 10, 11 or 12 |
 | Control panel | An existing myVesta installation |
-| myVesta root | `/usr/local/vesta` by default |
+| myVesta root | Exactly `/usr/local/vesta` |
 | PHP | One or more PHP-FPM versions under `/etc/php/<version>/fpm` |
 | Required commands | `bash`, `patch`, `flock`, standard GNU/Linux utilities |
 | Permissions | `root` or an account with working `sudo` access |
@@ -98,8 +103,7 @@ Choose one method. Run the download as your normal administrative account and us
 
 ### Option A: clone with Git (recommended)
 
-Clone the repository into a stable directory that will not be deleted after
-installation:
+Clone the repository into a working directory:
 
 ```bash
 mkdir -p "$HOME/src"
@@ -113,7 +117,7 @@ cd myvestacp-domain-php-config
 1. Open the repository on GitHub.
 2. Select **Code → Download ZIP**.
 3. Copy the ZIP to the myVesta server with SFTP or `scp`.
-4. Ensure `unzip` is installed, extract the archive into a permanent directory and
+4. Ensure `unzip` is installed, extract the archive into a working directory and
    enter the project folder:
 
 ```bash
@@ -125,8 +129,7 @@ cd "$HOME/src/myvestacp-domain-php-config"
 ```
 
 If GitHub gives the extracted folder a different suffix, use that actual folder
-name in the `mv` command. Do not remove the final project directory after the
-installation.
+name in the `mv` command.
 
 ## Installation
 
@@ -138,9 +141,9 @@ From the project directory:
 sudo ./install.sh --dry-run
 ```
 
-The preflight checks the operating system, required myVesta commands and whether
-the integration patches can be applied or are already present. A successful run
-ends with:
+The preflight checks the operating system, required myVesta commands, PHP-FPM pool
+layout and whether every integration patch is exactly applicable or already
+applied. A successful run ends with:
 
 ```text
 Preflight OK: no files changed
@@ -158,22 +161,21 @@ sudo ./install.sh
 
 The installer will:
 
-1. create a timestamped backup under
+1. repeat the same preflight while holding the lifecycle lock;
+2. create a timestamped backup under
    `/var/lib/myvesta-domain-php-config/backups/`;
-2. install the PHP configuration commands and panel page;
-3. add the PHP action to the administrator and user domain lists;
-4. add the reapply hook to myVesta's web-domain rebuild command;
-5. preserve managed domain settings under
+3. install the PHP configuration commands and panel page;
+4. add the PHP action to the administrator and user domain lists;
+5. add the reapply hook to myVesta's web-domain rebuild command;
+6. migrate legacy `0.1.0` installation state when present;
+7. run the installed health check and automatically roll back every changed file
+   if any stage fails;
+8. preserve managed domain settings under
    `/var/lib/myvesta-domain-php-config/domains/`.
 
-The final output prints the exact backup directory created for that run.
-
-For a non-standard myVesta installation, pass its root explicitly:
-
-```bash
-sudo VESTA_ROOT=/custom/vesta ./install.sh --dry-run
-sudo VESTA_ROOT=/custom/vesta ./install.sh
-```
+The final output prints the exact backup directory created for that run. myVesta
+installations outside `/usr/local/vesta` are intentionally rejected because the
+control panel itself and its command ecosystem assume that standard path.
 
 ### 3. Verify the installation
 
@@ -226,13 +228,14 @@ sudo ./upgrade.sh
 sudo /usr/local/vesta/bin/v-check-domain-php-config-patch
 ```
 
-For a ZIP installation, download and extract the new version over a separate
-temporary directory, copy its contents into the permanent project directory, and
-then run the three `upgrade.sh` and verification commands above. Do not delete the
-permanent directory or change its path between install and uninstall.
+For a ZIP installation, download and extract the new version into a separate
+directory, enter it, and run the three `upgrade.sh` and verification commands
+above. The new checkout does not need to reuse the installation path of an older
+version.
 
-Each installation or upgrade creates a new timestamped backup before changing the
-panel.
+Each installation or upgrade performs an internal mandatory preflight, creates a
+new timestamped backup and restores all changed targets if a patch, copy or final
+health check fails.
 
 ## Command-line usage
 
@@ -263,16 +266,19 @@ and restart PHP-FPM afterward.
 
 ## Uninstalling
 
-Run the uninstaller from the same permanent checkout used for installation:
+Run the installed uninstall preflight first:
 
 ```bash
-cd "$HOME/src/myvestacp-domain-php-config"
-sudo ./uninstall.sh
+sudo /usr/local/vesta/bin/v-uninstall-domain-php-config --dry-run
+sudo /usr/local/vesta/bin/v-uninstall-domain-php-config
 ```
 
-The extension code and integration patches are removed. Per-domain state is
-deliberately retained under `/var/lib/myvesta-domain-php-config/domains/`, allowing
-it to be restored after a reinstall. Timestamped backups also remain available.
+The repository wrapper `sudo ./uninstall.sh` invokes the same installed
+uninstaller. The extension code and integration patches are removed
+transactionally, even when the original checkout no longer exists. Per-domain
+state is deliberately retained under `/var/lib/myvesta-domain-php-config/domains/`,
+allowing it to be restored after a reinstall. Timestamped backups also remain
+available.
 
 ## Safety notes
 
@@ -280,6 +286,7 @@ it to be restored after a reinstall. Timestamped backups also remain available.
   control panel.
 - Run `--dry-run` after every myVesta update and before every extension upgrade.
 - Never force a failed patch or overwrite a locally modified panel template.
+- Do not set `VESTA_ROOT`; only `/usr/local/vesta` is supported publicly.
 - The extension changes per-domain FPM pools; it does not edit global `php.ini`
   files.
 - Resource suggestions are planning estimates, not guaranteed or kernel-enforced
