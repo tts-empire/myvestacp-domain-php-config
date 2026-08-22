@@ -1,7 +1,7 @@
 --- usr/local/vesta/web/templates/user/edit_web.html
 +++ usr/local/vesta/web/templates/user/edit_web.html
 @@ -58,6 +58,9 @@
-                                   <input type="hidden" name="v_domain" value="<?=htmlentities(trim($v_domain, "'"))?>">
+                                  <input type="hidden" name="v_domain" value="<?=htmlentities(trim($v_domain, "'"))?>">
                                 </td>
                             </tr>
 +                            <tr>

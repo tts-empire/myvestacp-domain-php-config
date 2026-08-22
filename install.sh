@@ -66,6 +66,7 @@ apply_patch_file() {
         echo "Already applied: $patch_file"
         return 0
     fi
+    [[ -f "$target" ]] && install -D -m 0600 "$target" "$BACKUP_ROOT$target"
     if ! patch --batch --fuzz=3 --forward -p0 -d / < "$patch_file"; then
         die "conflict detected while applying $patch_file"
     fi
