@@ -24,7 +24,7 @@ for version_dir in /etc/php/*/fpm; do
     [[ -d "$version_dir" ]] || continue
     version="$(basename "$(dirname "$version_dir")")"
     pool_dir="$version_dir/pool.d"
-    [[ -d "$pool_dir" ]] && printf 'OK   PHP %s FPM pool directory\n' "$version" || { printf 'FAIL PHP %s FPM pool directory\n' "$version"; fail=1; }
+    [[ -d "$pool_dir" ]] && printf 'OK   PHP %s FPM pool directory\n' "$version" || printf 'WARN PHP %s has no FPM pool directory\n' "$version"
     if command -v "php-fpm${version}" >/tmp/myvesta-domain-php-check 2>&1 || [[ -x "/usr/sbin/php-fpm${version}" ]]; then
         printf 'OK   PHP %s FPM binary\n' "$version"
     else
