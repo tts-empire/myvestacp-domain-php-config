@@ -17,18 +17,18 @@ effective PHP settings, compare them with suggestions calculated specifically fo
 that server, and save validated per-domain overrides.
 
 > [!IMPORTANT]
-> This repository is currently private and has no published GitHub release.
-> Authorized users must clone it with GitHub authentication or download the ZIP
-> from the repository page. Do not use an unauthenticated `curl | bash` installer.
+> There is no published GitHub release yet. Clone the repository or download the
+> ZIP from GitHub, inspect the source, and run the installer locally. Do not install
+> it through an unaudited `curl | bash` command.
 
 ## Quick start
 
-For an authorized GitHub account with `gh` already authenticated:
+Clone the public repository and run the preflight before installing:
 
 ```bash
 mkdir -p "$HOME/src"
 cd "$HOME/src"
-gh repo clone tts-empire/myvestacp-domain-php-config
+git clone https://github.com/tts-empire/myvestacp-domain-php-config.git
 cd myvestacp-domain-php-config
 sudo ./install.sh --dry-run
 sudo ./install.sh
@@ -81,21 +81,17 @@ as supported. See the complete [compatibility matrix](docs/compatibility.md).
 Choose one method. Run the download as your normal administrative account and use
 `sudo` only for the installation commands.
 
-### Option A: clone with GitHub CLI (recommended while private)
+### Option A: clone with Git (recommended)
 
-Install and authenticate GitHub CLI once, then clone the repository into a stable
-directory that will not be deleted after installation:
+Clone the repository into a stable directory that will not be deleted after
+installation:
 
 ```bash
-gh auth status
 mkdir -p "$HOME/src"
 cd "$HOME/src"
-gh repo clone tts-empire/myvestacp-domain-php-config
+git clone https://github.com/tts-empire/myvestacp-domain-php-config.git
 cd myvestacp-domain-php-config
 ```
-
-If `gh auth status` reports that no account is authenticated, run `gh auth login`
-and repeat the clone.
 
 ### Option B: download the ZIP from GitHub
 
@@ -116,19 +112,6 @@ cd "$HOME/src/myvestacp-domain-php-config"
 If GitHub gives the extracted folder a different suffix, use that actual folder
 name in the `mv` command. Do not remove the final project directory after the
 installation.
-
-### Public clone command for a future public release
-
-Once the repository is made public, users will also be able to download it without
-GitHub CLI:
-
-```bash
-git clone https://github.com/tts-empire/myvestacp-domain-php-config.git
-cd myvestacp-domain-php-config
-```
-
-This command does not work for users who have not been granted access while the
-repository remains private.
 
 ## Installation
 
