@@ -1,0 +1,119 @@
+#!/bin/bash
+set -e
+COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
+[[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+source "$COMMON"
+
+domain="${1:-}"
+restart="${2:-}"
+[[ -n "$domain" && ( "$restart" = yes || "$restart" = no ) ]] || die "usage: v-update-domain-php-config DOMAIN yes|no (set PARAMETER VALUE | reset PARAMETER)..."
+shift 2
+[[ $# -gt 0 ]] || die "at least one set or reset operation is required"
+
+declare -a actions=()
+declare -a parameters=()
+declare -a values=()
+declare -A seen=()
+
+while [[ $# -gt 0 ]]; do
+    action="$1"
+    shift
+    case "$action" in
+        set)
+            [[ $# -ge 2 ]] || die "set requires PARAMETER and VALUE"
+            parameter="$1"
+            value="$2"
+            shift 2
+            valid_parameter "$parameter" || die "unsupported PHP parameter: $parameter"
+            valid_value "$parameter" "$value" || die "invalid value for $parameter: $value"
+            ;;
+        reset)
+            [[ $# -ge 1 ]] || die "reset requires PARAMETER"
+            parameter="$1"
+            value=''
+            shift
+            valid_parameter "$parameter" || die "unsupported PHP parameter: $parameter"
+            ;;
+        *)
+            die "unsupported operation: $action"
+            ;;
+    esac
+    [[ -z "${seen[$parameter]:-}" ]] || die "duplicate operation for parameter: $parameter"
+    seen[$parameter]=yes
+    actions+=("$action")
+    parameters+=("$parameter")
+    values+=("$value")
+done
+
+resolve_domain "$domain" >/tmp/myvesta-domain-php-resolve
+version="$(php_version_of "$domain")"
+[[ -n "$version" ]] || die "PHP version could not be determined for $domain"
+service_exists "$version" || die "PHP-FPM service is not installed: php${version}-fpm"
+config="$(config_file_of "$domain" "$version")"
+[[ -f "$config" ]] || die "FPM pool does not exist: $config"
+command -v flock >/tmp/myvesta-domain-php-command-check 2>&1 || die "flock command is required"
+
+ensure_state
+state_file="$(state_file_of "$domain")"
+lock_file="$STATE_ROOT/.${domain}.lock"
+exec 9>"$lock_file"
+flock -x 9 || die "cannot lock PHP configuration for $domain"
+
+transaction_dir="$(mktemp -d "$STATE_ROOT/.transaction.XXXXXX")" || die "cannot create transaction directory"
+pool_backup="$transaction_dir/pool.conf"
+state_backup="$transaction_dir/state.conf"
+cp -a -- "$config" "$pool_backup"
+state_existed=no
+if [[ -f "$state_file" ]]; then
+    cp -a -- "$state_file" "$state_backup"
+    state_existed=yes
+fi
+
+committed=no
+restart_attempted=no
+finish_transaction() {
+    local status=$?
+    trap - EXIT INT TERM HUP
+    if [[ "$committed" != yes ]]; then
+        cp -a -- "$pool_backup" "$config" 2>/tmp/myvesta-domain-php-rollback || true
+        if [[ "$state_existed" = yes ]]; then
+            cp -a -- "$state_backup" "$state_file" 2>>/tmp/myvesta-domain-php-rollback || true
+        else
+            rm -f -- "$state_file"
+        fi
+        if [[ "$restart_attempted" = yes ]] && ! recover_php_service "$version"; then
+            echo "ERROR: PHP-FPM recovery failed after rollback: php${version}-fpm" >&2
+        fi
+    fi
+    rm -rf -- "$transaction_dir"
+    exit "$status"
+}
+trap finish_transaction EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+
+for index in "${!actions[@]}"; do
+    if [[ "${actions[$index]}" = set ]]; then
+        set_state_value "$domain" "${parameters[$index]}" "${values[$index]}"
+    else
+        remove_state_value "$domain" "${parameters[$index]}"
+    fi
+done
+
+apply_domain_config "$domain" "$version"
+if ! validate_domain_config "$version" >/tmp/myvesta-domain-php-config.validate 2>&1; then
+    cat /tmp/myvesta-domain-php-config.validate >&2
+    die "PHP-FPM validation failed; state and pool will be restored"
+fi
+
+if [[ "$restart" = yes ]]; then
+    restart_attempted=yes
+    if ! restart_php_service "$version"; then
+        cat /tmp/myvesta-domain-php-restart >&2
+        die "PHP-FPM restart failed; state and pool will be restored"
+    fi
+fi
+
+committed=yes
+rm -f /tmp/myvesta-domain-php-config.validate
+printf 'PHP configuration updated for %s (PHP %s): %s operation(s)\n' "$domain" "$version" "${#actions[@]}"

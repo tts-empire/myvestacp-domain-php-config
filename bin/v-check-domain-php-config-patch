@@ -18,6 +18,8 @@ check() {
 check test -x "$VESTA_ROOT/bin/v-search-domain-owner"
 check test -x "$VESTA_ROOT/bin/v-get-php-version-of-domain"
 check test -x "$VESTA_ROOT/bin/v-rebuild-web-domains"
+check test -x "$VESTA_ROOT/bin/v-update-domain-php-config"
+check command -v flock
 check test -d /etc/php
 check test -d "$STATE_ROOT"
 for version_dir in /etc/php/*/fpm; do

@@ -13,6 +13,41 @@ version="$(php_version_of "$domain")"
 config="$(config_file_of "$domain" "$version")"
 [[ -f "$config" ]] || die "FPM pool does not exist: $config"
 
+ini_dump="$(mktemp /tmp/myvesta-domain-php-ini.XXXXXX)" || die "cannot create PHP-FPM ini dump"
+trap 'rm -f -- "$ini_dump"' EXIT
+write_fpm_ini_dump "$version" "$ini_dump" || : > "$ini_dump"
+
+resolve_parameter() {
+    local parameter="$1"
+    local actual_result base_result state_value
+    state_value="$(get_state_value "$domain" "$parameter")"
+    actual_result="$(pool_setting_of "$config" "$parameter" all)"
+    base_result="$(pool_setting_of "$config" "$parameter" base)"
+
+    ACTUAL_VALUE=''
+    ACTUAL_SOURCE='unavailable'
+    BASE_VALUE=''
+    BASE_SOURCE='unavailable'
+    MANAGED=false
+
+    if [[ -n "$actual_result" ]]; then
+        IFS=$'\t' read -r ACTUAL_VALUE ACTUAL_SOURCE <<< "$actual_result"
+    elif ! is_pool_manager_parameter "$parameter"; then
+        ACTUAL_VALUE="$(ini_setting_of "$ini_dump" "$parameter")"
+        [[ -n "$ACTUAL_VALUE" ]] && ACTUAL_SOURCE='php_ini'
+    fi
+
+    if [[ -n "$base_result" ]]; then
+        IFS=$'\t' read -r BASE_VALUE BASE_SOURCE <<< "$base_result"
+    elif ! is_pool_manager_parameter "$parameter"; then
+        BASE_VALUE="$(ini_setting_of "$ini_dump" "$parameter")"
+        [[ -n "$BASE_VALUE" ]] && BASE_SOURCE='php_ini'
+    fi
+
+    [[ -n "$state_value" ]] && MANAGED=true
+    return 0
+}
+
 if [[ "$format" = json ]]; then
     printf '{"DOMAIN":"%s","OWNER":"%s","PHP_VERSION":"%s","CONFIG":{' "$(emit_json_string "$domain")" "$(emit_json_string "$owner")" "$(emit_json_string "$version")"
     first=1
@@ -23,11 +58,27 @@ if [[ "$format" = json ]]; then
         printf '"%s":"%s"' "$parameter" "$(emit_json_string "$value")"
         first=0
     done
+    printf '},"ACTUAL":{'
+    first=1
+    for parameter in $PHP_PARAMETERS; do
+        resolve_parameter "$parameter"
+        [[ $first -eq 0 ]] && printf ','
+        printf '"%s":{"VALUE":"%s","SOURCE":"%s","MANAGED":%s,"BASE_VALUE":"%s","BASE_SOURCE":"%s"}' \
+            "$parameter" \
+            "$(emit_json_string "$ACTUAL_VALUE")" \
+            "$ACTUAL_SOURCE" \
+            "$MANAGED" \
+            "$(emit_json_string "$BASE_VALUE")" \
+            "$BASE_SOURCE"
+        first=0
+    done
     printf '},"CONFIG_PATH":"%s"}\n' "$(emit_json_string "$config")"
 else
     printf 'DOMAIN %s\nOWNER %s\nPHP_VERSION %s\nCONFIG_PATH %s\n' "$domain" "$owner" "$version" "$config"
     for parameter in $PHP_PARAMETERS; do
         value="$(get_state_value "$domain" "$parameter")"
         [[ -n "$value" ]] && printf '%s %s\n' "$parameter" "$value"
+        resolve_parameter "$parameter"
+        printf 'ACTUAL %s %s %s %s %s %s\n' "$parameter" "$ACTUAL_VALUE" "$ACTUAL_SOURCE" "$MANAGED" "$BASE_VALUE" "$BASE_SOURCE"
     done
 fi

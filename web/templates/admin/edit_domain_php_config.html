@@ -56,21 +56,65 @@
                 <br><br>
               </td>
             </tr>
-            <?php if (!empty($resource_summary)) { ?>
+            <tr>
+              <td class="vst-text input-label">
+                <b><?=__('Server-specific audit')?></b>
+              </td>
+            </tr>
             <tr>
               <td class="vst-text">
-                <?=htmlentities($resource_summary)?>
+                <?php if (!empty($resource_summary)) { ?>
+                <span class="optional"><?=htmlentities($resource_summary)?></span><br>
+                <?php } ?>
+                <?=htmlentities($audit_notice)?>
                 <br><br>
               </td>
             </tr>
-            <?php } ?>
-            <?php foreach ($fields as $parameter => $label) { ?>
+            <?php foreach ($field_data as $parameter => $field) { ?>
             <tr>
-              <td class="vst-text"><?=htmlentities($label)?><span class="optional"><?=htmlentities($parameter)?></span></td>
+              <td class="vst-text">
+                <label for="<?=htmlentities($field['id'])?>"><?=htmlentities($field['label'])?></label>
+                <span class="optional"><?=htmlentities($parameter)?></span>
+              </td>
+            </tr>
+            <tr>
+              <td class="vst-text optional" id="<?=htmlentities($field['id'])?>-settings">
+                <?=__('Actual setting')?>:
+                <b><?=htmlentities($field['actual_value'] !== '' ? $field['actual_value'] : __('unavailable'))?></b>
+                · <?=htmlentities($field['actual_source'])?>
+                <?php if ($field['managed']) { ?>
+                <span id="<?=htmlentities($field['id'])?>-reset-action" style="display:<?=$field['reset_pending'] ? 'none' : 'inline'?>;">
+                  · <a class="generate" href="javascript:void(0)" onclick="resetDomainPhpSetting('<?=htmlentities($field['id'])?>'); return false;"><?=__('reset')?></a>
+                </span>
+                <?php } ?>
+                <br>
+                <?=__('Suggested setting')?>:
+                <?php if ($field['has_suggestion']) { ?>
+                  <b><?=htmlentities($field['suggested_value'])?></b>
+                  <?php if ($field['matches_suggestion']) { ?>
+                    · <?=__('Matches actual setting')?>
+                  <?php } else { ?>
+                    · <a class="generate" href="javascript:void(0)" onclick="useDomainPhpSuggestion('<?=htmlentities($field['id'])?>'); return false;"><?=__('use')?></a>
+                  <?php } ?>
+                <?php } else { ?>
+                  <?=__('No suggested setting')?>
+                <?php } ?>
+                <span id="<?=htmlentities($field['id'])?>-reset-pending" style="display:<?=$field['reset_pending'] ? 'inline' : 'none'?>;">
+                  <br><?=__('Will reset to')?>
+                  <b><?=htmlentities($field['base_value'] !== '' ? $field['base_value'] : __('unavailable'))?></b>
+                  · <?=htmlentities($field['base_source'])?>
+                  <?=__('on Save')?>
+                  · <a class="generate" href="javascript:void(0)" onclick="undoDomainPhpReset('<?=htmlentities($field['id'])?>'); return false;"><?=__('undo')?></a>
+                </span>
+              </td>
             </tr>
             <tr>
               <td>
-                <input type="text" size="20" class="vst-input" name="php_config[<?=htmlentities($parameter)?>]" value="<?=isset($values[$parameter]) ? htmlentities($values[$parameter]) : ''?>">
+                <input type="hidden" id="<?=htmlentities($field['id'])?>-actual" value="<?=htmlentities($field['actual_value'])?>">
+                <input type="hidden" id="<?=htmlentities($field['id'])?>-base" value="<?=htmlentities($field['base_value'])?>">
+                <input type="hidden" id="<?=htmlentities($field['id'])?>-suggested" value="<?=htmlentities($field['suggested_value'])?>">
+                <input type="hidden" id="<?=htmlentities($field['id'])?>-reset" name="php_reset[<?=htmlentities($parameter)?>]" value="<?=$field['reset_pending'] ? 'yes' : 'no'?>">
+                <input type="text" size="20" class="vst-input" id="<?=htmlentities($field['id'])?>" aria-describedby="<?=htmlentities($field['id'])?>-settings" name="php_config[<?=htmlentities($parameter)?>]" value="<?=htmlentities($field['input_value'])?>" oninput="cancelDomainPhpReset('<?=htmlentities($field['id'])?>')">
                 <br><br>
               </td>
             </tr>
@@ -79,9 +123,6 @@
               <td class="vst-text input-label">
                 <label><input type="checkbox" class="vst-checkbox" name="v_restart" checked="checked"> <?=__('Restart PHP-FPM after saving')?></label>
               </td>
-            </tr>
-            <tr>
-              <td class="vst-text input-label"><?=__('Suggested values are calculated from current server resources and can be changed manually.')?></td>
             </tr>
           </table>
           <table class="data-col2">
@@ -99,3 +140,45 @@
     </table>
   </form>
 </div>
+
+<script type="text/javascript">
+function setDomainPhpResetState(fieldId, pending) {
+  var reset = document.getElementById(fieldId + '-reset');
+  var pendingMessage = document.getElementById(fieldId + '-reset-pending');
+  var resetAction = document.getElementById(fieldId + '-reset-action');
+  if (reset) reset.value = pending ? 'yes' : 'no';
+  if (pendingMessage) pendingMessage.style.display = pending ? 'inline' : 'none';
+  if (resetAction) resetAction.style.display = pending ? 'none' : 'inline';
+}
+
+function cancelDomainPhpReset(fieldId) {
+  setDomainPhpResetState(fieldId, false);
+}
+
+function useDomainPhpSuggestion(fieldId) {
+  var field = document.getElementById(fieldId);
+  var suggested = document.getElementById(fieldId + '-suggested');
+  if (!field || !suggested) return;
+  field.value = suggested.value;
+  setDomainPhpResetState(fieldId, false);
+  field.focus();
+}
+
+function resetDomainPhpSetting(fieldId) {
+  var field = document.getElementById(fieldId);
+  var base = document.getElementById(fieldId + '-base');
+  if (!field || !base) return;
+  field.value = base.value;
+  setDomainPhpResetState(fieldId, true);
+  field.focus();
+}
+
+function undoDomainPhpReset(fieldId) {
+  var field = document.getElementById(fieldId);
+  var actual = document.getElementById(fieldId + '-actual');
+  if (!field || !actual) return;
+  field.value = actual.value;
+  setDomainPhpResetState(fieldId, false);
+  field.focus();
+}
+</script>

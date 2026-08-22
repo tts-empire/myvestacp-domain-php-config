@@ -16,7 +16,7 @@ mem_available_kb="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
 swap_total_kb="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
 cpu_count="$(getconf _NPROCESSORS_ONLN 2>/tmp/myvesta-domain-php-cpu || echo 1)"
 [[ "$cpu_count" =~ ^[0-9]+$ ]] || cpu_count=1
-pool_count="$(find /etc/php -path '*/fpm/pool.d/*.conf' -type f 2>/tmp/myvesta-domain-php-find | wc -l)"
+pool_count="$(find "$PHP_ETC_ROOT" -path '*/fpm/pool.d/*.conf' -type f 2>/tmp/myvesta-domain-php-find | wc -l)"
 [[ "$pool_count" -gt 0 ]] || pool_count=1
 mem_total_mb=$((mem_total_kb / 1024))
 mem_available_mb=$((mem_available_kb / 1024))

@@ -26,6 +26,7 @@ case "$VERSION_ID" in 10|11|12) ;; *) echo "WARNING: Debian $VERSION_ID is not i
 [[ -f "$VESTA_ROOT/web/templates/admin/list_web.html" ]] || die "MyVesta admin list_web template missing"
 [[ -f "$VESTA_ROOT/web/templates/user/list_web.html" ]] || die "MyVesta user list_web template missing"
 command -v patch >/tmp/myvesta-domain-php-check 2>&1 || die "patch command is required"
+command -v flock >/tmp/myvesta-domain-php-check 2>&1 || die "flock command is required"
 
 if [[ "$DRY_RUN" = yes ]]; then
     patch_specs=(
@@ -60,7 +61,7 @@ backup_and_install() {
 }
 
 backup_and_install "$REPO_ROOT/lib/domain-php-common.sh" "$VESTA_ROOT/bin/myvesta-domain-php-common.sh"
-for command_file in v-list-domain-php-config v-change-domain-php-config v-reapply-domain-php-config v-suggest-domain-php-config v-check-domain-php-config-patch; do
+for command_file in v-list-domain-php-config v-change-domain-php-config v-update-domain-php-config v-reapply-domain-php-config v-suggest-domain-php-config v-check-domain-php-config-patch; do
     backup_and_install "$REPO_ROOT/bin/$command_file" "$VESTA_ROOT/bin/$command_file"
 done
 install -d -m 0755 "$VESTA_ROOT/web/edit/domain-php-config"

@@ -8,14 +8,20 @@ done
 for file in "$ROOT"/web/edit/domain-php-config/*.php; do
     php -l "$file" >/tmp/myvesta-domain-php-lint
 done
+php -l "$ROOT/web/templates/admin/edit_domain_php_config.html" >/tmp/myvesta-domain-php-lint
 
-grep -q "last_change_index = count" "$ROOT/web/edit/domain-php-config/index.php"
-grep -q 'change_index == $last_change_index' "$ROOT/web/edit/domain-php-config/index.php"
-grep -q "command_restart.*'yes'.*'no'" "$ROOT/web/edit/domain-php-config/index.php"
+grep -q "v-update-domain-php-config" "$ROOT/web/edit/domain-php-config/index.php"
+grep -q "actual_value" "$ROOT/web/edit/domain-php-config/index.php"
 grep -q "2>&1" "$ROOT/web/edit/domain-php-config/index.php"
 grep -q 'class="data mode-add"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
 grep -q 'class="data-col2" width="600px"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
 grep -q 'class="button cancel"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
+grep -q "Actual setting" "$ROOT/web/templates/admin/edit_domain_php_config.html"
+grep -q "Suggested setting" "$ROOT/web/templates/admin/edit_domain_php_config.html"
+grep -q "useDomainPhpSuggestion" "$ROOT/web/templates/admin/edit_domain_php_config.html"
+grep -q "resetDomainPhpSetting" "$ROOT/web/templates/admin/edit_domain_php_config.html"
+grep -q "specific to this server; they are not standard PHP defaults" "$ROOT/web/edit/domain-php-config/index.php"
+test -x "$ROOT/bin/v-update-domain-php-config"
 
 check_patch() {
     local patch_file="$1"
@@ -35,5 +41,7 @@ if [[ -n "${MYVESTA_TEST_DOMAIN:-}" ]]; then
     "$ROOT/bin/v-suggest-domain-php-config" "$MYVESTA_TEST_DOMAIN" json >/tmp/myvesta-domain-php-advisor.json
     grep -q '"SUGGESTED"' /tmp/myvesta-domain-php-advisor.json
 fi
+
+"$ROOT/tests/test-transaction.sh"
 
 echo "Static tests passed."

@@ -9,29 +9,7 @@ parameter="${2:-}"
 value="${3:-}"
 restart="${4:-yes}"
 [[ -n "$domain" && -n "$parameter" && -n "$value" ]] || die "usage: v-change-domain-php-config DOMAIN PARAMETER VALUE [yes|no]"
-resolve_domain "$domain" >/tmp/myvesta-domain-php-resolve
-valid_parameter "$parameter" || die "unsupported PHP parameter: $parameter"
-valid_value "$parameter" "$value" || die "invalid value for $parameter: $value"
-version="$(php_version_of "$domain")"
-[[ -n "$version" ]] || die "PHP version could not be determined for $domain"
-service_exists "$version" || die "PHP-FPM service is not installed: php${version}-fpm"
-
-ensure_state
-set_state_value "$domain" "$parameter" "$value"
-apply_domain_config "$domain" "$version"
-
-if ! validate_domain_config "$version" >/tmp/myvesta-domain-php-config.validate 2>&1; then
-    cat /tmp/myvesta-domain-php-config.validate >&2
-    rollback_domain_config "$domain" "$version"
-    die "PHP-FPM validation failed; previous pool restored"
-fi
-
-if [[ "$restart" != no ]]; then
-    if ! restart_php_service "$version"; then
-        rollback_domain_config "$domain" "$version"
-        restart_php_service "$version" || true
-        die "PHP-FPM restart failed; previous pool restored"
-    fi
-fi
-rm -f /tmp/myvesta-domain-php-config.validate
-printf 'PHP configuration updated for %s (PHP %s): %s=%s\n' "$domain" "$version" "$parameter" "$value"
+[[ "$restart" = yes || "$restart" = no ]] || die "restart must be yes or no"
+UPDATE_COMMAND="$(dirname "$0")/v-update-domain-php-config"
+[[ -x "$UPDATE_COMMAND" ]] || UPDATE_COMMAND="/usr/local/vesta/bin/v-update-domain-php-config"
+exec "$UPDATE_COMMAND" "$domain" "$restart" set "$parameter" "$value"
