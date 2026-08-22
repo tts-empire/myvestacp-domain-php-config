@@ -291,7 +291,6 @@ it to be restored after a reinstall. Timestamped backups also remain available.
 
 - [Architecture](docs/architecture.md)
 - [Compatibility matrix](docs/compatibility.md)
-- [Server, user and domain resource-budget analysis](docs/resource-budget-analysis.md)
 - [Changelog](CHANGELOG.md)
 
 ## Support and contributions
