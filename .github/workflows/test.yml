@@ -36,7 +36,7 @@ jobs:
             bash ca-certificates coreutils findutils gawk git grep patch php-cli sed util-linux
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run static, transaction and lifecycle tests
         shell: bash
