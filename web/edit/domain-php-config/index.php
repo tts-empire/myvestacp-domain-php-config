@@ -60,6 +60,7 @@ if (!empty($_POST['save'])) {
     }
 
     $restart = empty($_POST['v_restart']) ? 'no' : 'yes';
+    $changes = array();
     foreach ($fields as $parameter => $label) {
         if (!isset($_POST['php_config'][$parameter])) {
             continue;
@@ -68,7 +69,14 @@ if (!empty($_POST['save'])) {
         if ($value === '') {
             continue;
         }
-        $command = VESTA_CMD.'v-change-domain-php-config '.$domain_arg.' '.escapeshellarg($parameter).' '.escapeshellarg($value).' '.$restart;
+        $changes[$parameter] = $value;
+    }
+
+    $change_index = 0;
+    $last_change_index = count($changes) - 1;
+    foreach ($changes as $parameter => $value) {
+        $command_restart = ($restart == 'yes' && $change_index == $last_change_index) ? 'yes' : 'no';
+        $command = VESTA_CMD.'v-change-domain-php-config '.$domain_arg.' '.escapeshellarg($parameter).' '.escapeshellarg($value).' '.$command_restart.' 2>&1';
         exec($command, $output, $return_var);
         check_return_code($return_var, $output);
         unset($output);
@@ -76,6 +84,7 @@ if (!empty($_POST['save'])) {
             break;
         }
         $values[$parameter] = $value;
+        $change_index++;
     }
 
     if (empty($_SESSION['error_msg'])) {

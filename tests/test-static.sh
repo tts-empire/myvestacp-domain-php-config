@@ -9,6 +9,10 @@ for file in "$ROOT"/web/edit/domain-php-config/*.php; do
     php -l "$file" >/tmp/myvesta-domain-php-lint
 done
 
+grep -q "last_change_index = count" "$ROOT/web/edit/domain-php-config/index.php"
+grep -q 'change_index == $last_change_index' "$ROOT/web/edit/domain-php-config/index.php"
+grep -q "command_restart.*'yes'.*'no'" "$ROOT/web/edit/domain-php-config/index.php"
+grep -q "2>&1" "$ROOT/web/edit/domain-php-config/index.php"
 grep -q 'class="data mode-add"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
 grep -q 'class="data-col2" width="600px"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
 grep -q 'class="button cancel"' "$ROOT/web/templates/admin/edit_domain_php_config.html"
