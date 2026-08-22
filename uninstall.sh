@@ -11,8 +11,8 @@ while IFS= read -r item; do
     [[ -n "$item" ]] || continue
     if [[ "$item" = PATCH:* ]]; then
         patch_file="${item#PATCH:}"
-        if [[ -f "$patch_file" ]] && patch --dry-run --reverse -p0 < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1; then
-            patch --reverse -p0 < "$patch_file"
+        if [[ -f "$patch_file" ]] && patch --dry-run --reverse -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1; then
+            patch --reverse -p0 -d / < "$patch_file"
         fi
     fi
 done < "$MANIFEST"

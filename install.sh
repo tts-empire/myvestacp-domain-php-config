@@ -27,7 +27,7 @@ command -v patch >/tmp/myvesta-domain-php-check 2>&1 || die "patch command is re
 
 if [[ "$DRY_RUN" = yes ]]; then
     for patch_file in "$REPO_ROOT"/patches/*.patch; do
-        patch --dry-run --forward -p0 < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || patch --dry-run --reverse -p0 < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || die "patch conflict: $patch_file"
+        patch --dry-run --forward -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || patch --dry-run --reverse -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || die "patch conflict: $patch_file"
         echo "Preflight OK: $patch_file"
     done
     echo "Preflight OK: no files changed"
@@ -59,21 +59,24 @@ printf '%s\n' "$VESTA_ROOT/web/edit/domain-php-config/index.php" "$VESTA_ROOT/we
 
 apply_patch_file() {
     local patch_file="$1"
-    if patch --dry-run --forward -p0 < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1; then
-        local target
-        target="$(sed -n '1s|^--- ||p' "$patch_file")"
-        [[ -f "$target" ]] && install -D -m 0600 "$target" "$BACKUP_ROOT$target"
-        patch --forward -p0 < "$patch_file"
-        printf 'PATCH:%s\n' "$patch_file" >> "$manifest"
-    elif patch --dry-run --reverse -p0 < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1; then
+    local target="$2"
+    local marker="$3"
+    if grep -Fq "$marker" "$target"; then
         echo "Already applied: $patch_file"
-    else
+        return 0
+    fi
+    if ! patch --batch --forward -p0 -d / < "$patch_file"; then
         die "conflict detected while applying $patch_file"
     fi
+    printf 'PATCH:%s\n' "$patch_file" >> "$manifest"
 }
 
-apply_patch_file "$REPO_ROOT/patches/edit_web.html.add-link.patch"
-apply_patch_file "$REPO_ROOT/patches/v-rebuild-web-domains.add-hook.patch"
+apply_patch_file "$REPO_ROOT/patches/edit_web.html.add-link.patch" \
+    "$VESTA_ROOT/web/templates/admin/edit_web.html" \
+    'PHP Domain Configuration'
+apply_patch_file "$REPO_ROOT/patches/v-rebuild-web-domains.add-hook.patch" \
+    "$VESTA_ROOT/bin/v-rebuild-web-domains" \
+    'v-reapply-domain-php-config'
 
 echo "Installed MyVesta domain PHP configuration patch."
 echo "Backup: $BACKUP_ROOT"
