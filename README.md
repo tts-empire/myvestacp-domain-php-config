@@ -52,11 +52,18 @@ sections before using this on a production server.
 
 ## Screenshot
 
+### Domain PHP-FPM settings
+
 [![myVesta domain PHP-FPM configuration page](docs/assets/domain-php-config.png)](docs/assets/domain-php-config.png)
 
-The screenshot is rendered from the actual myVesta template and stylesheet using
-fully synthetic documentation data. It contains no production domain, hostname,
-account name, IP address or measured server value.
+### PHP action in the WEB domain list
+
+[![PHP action highlighted in the myVesta WEB domain list](docs/assets/domain-list-php-action.png)](docs/assets/domain-list-php-action.png)
+
+Both screenshots are rendered from the actual myVesta templates and stylesheet
+using fully synthetic documentation data. They contain no production domain,
+hostname, account name, IP address or measured server value. The red outline is a
+documentation annotation and does not appear in the installed panel.
 
 ## Project status
 
