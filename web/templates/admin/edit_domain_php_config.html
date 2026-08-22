@@ -1,0 +1,54 @@
+<div class="l-center edit">
+  <div class="l-sort clearfix">
+    <div class="l-sort-toolbar clearfix float-left">
+      <span class="title edit"><b><?=__('PHP Domain Configuration')?></b></span>
+      <?php
+        if (!empty($_SESSION['error_msg'])) {
+          echo "<span class=\"vst-error\"> → ".htmlentities($_SESSION['error_msg'])."</span>";
+        } elseif (!empty($_SESSION['ok_msg'])) {
+          echo "<span class=\"vst-ok\"> → ".$_SESSION['ok_msg']."</span>";
+        }
+      ?>
+    </div>
+  </div>
+</div>
+
+<div class="l-separator"></div>
+
+<div class="l-center">
+  <form id="vstobjects" name="v_edit_domain_php" method="post">
+    <input type="hidden" name="token" value="<?=$_SESSION['token']?>" />
+    <input type="hidden" name="save" value="save" />
+
+    <table class="data">
+      <tr class="data-add">
+        <td class="data-dotted">
+          <table class="data-col1">
+            <tr><td class="vst-text step-top"><?=__('Domain')?></td></tr>
+            <tr><td><input type="text" class="vst-input" value="<?=htmlentities($domain)?>" disabled></td></tr>
+            <tr><td class="vst-text input-label"><?=__('PHP Version')?></td></tr>
+            <tr><td><input type="text" class="vst-input" value="<?=htmlentities($config['PHP_VERSION'])?>" disabled></td></tr>
+            <?php if (!empty($resource_summary)) { ?>
+            <tr><td class="vst-text input-label"><?=htmlentities($resource_summary)?></td></tr>
+            <?php } ?>
+          </table>
+        </td>
+        <td class="data-dotted">
+          <table class="data-col2">
+            <?php foreach ($fields as $parameter => $label) { ?>
+            <tr><td class="vst-text input-label"><?=htmlentities($label)?><span class="optional"><?=htmlentities($parameter)?></span></td></tr>
+            <tr><td><input type="text" class="vst-input" name="php_config[<?=htmlentities($parameter)?>]" value="<?=isset($values[$parameter]) ? htmlentities($values[$parameter]) : ''?>"></td></tr>
+            <?php } ?>
+            <tr>
+              <td class="vst-text step-top">
+                <label><input type="checkbox" class="vst-checkbox" name="v_restart" checked="checked"> <?=__('Restart PHP-FPM after saving')?></label>
+              </td>
+            </tr>
+            <tr><td class="vst-text input-label"><?=__('Suggested values are calculated from current server resources and can be changed manually.')?></td></tr>
+            <tr><td><input type="submit" class="button" name="save" value="<?=__('Save')?>"></td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>

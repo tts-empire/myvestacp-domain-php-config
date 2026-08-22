@@ -1,0 +1,42 @@
+#!/bin/bash
+set -u
+VESTA_ROOT="${VESTA_ROOT:-/usr/local/vesta}"
+STATE_ROOT="${MYVESTA_DOMAIN_PHP_STATE:-/var/lib/myvesta-domain-php-config}"
+
+fail=0
+check() {
+    if "$@" >/tmp/myvesta-domain-php-check 2>&1; then
+        printf 'OK   %s\n' "$*"
+    else
+        printf 'FAIL %s\n' "$*"
+        fail=1
+    fi
+}
+
+[[ "$(id -u)" = 0 ]] && printf 'OK   running as root\n' || { printf 'FAIL running as root\n'; fail=1; }
+[[ -d "$VESTA_ROOT" ]] && printf 'OK   MyVesta root: %s\n' "$VESTA_ROOT" || { printf 'FAIL MyVesta root: %s\n' "$VESTA_ROOT"; fail=1; }
+check test -x "$VESTA_ROOT/bin/v-search-domain-owner"
+check test -x "$VESTA_ROOT/bin/v-get-php-version-of-domain"
+check test -x "$VESTA_ROOT/bin/v-rebuild-web-domains"
+check test -d /etc/php
+check test -d "$STATE_ROOT"
+for version_dir in /etc/php/*/fpm; do
+    [[ -d "$version_dir" ]] || continue
+    version="$(basename "$(dirname "$version_dir")")"
+    pool_dir="$version_dir/pool.d"
+    [[ -d "$pool_dir" ]] && printf 'OK   PHP %s FPM pool directory\n' "$version" || { printf 'FAIL PHP %s FPM pool directory\n' "$version"; fail=1; }
+    if command -v "php-fpm${version}" >/tmp/myvesta-domain-php-check 2>&1 || [[ -x "/usr/sbin/php-fpm${version}" ]]; then
+        printf 'OK   PHP %s FPM binary\n' "$version"
+    else
+        printf 'WARN PHP %s FPM binary not found\n' "$version"
+    fi
+done
+
+if [[ -f "$VESTA_ROOT/web/templates/admin/edit_web.html" ]]; then
+    grep -q 'PHP Domain Configuration' "$VESTA_ROOT/web/templates/admin/edit_web.html" && printf 'OK   domain UI link installed\n' || printf 'WARN domain UI link not installed\n'
+else
+    printf 'FAIL admin edit_web template missing\n'
+    fail=1
+fi
+
+exit "$fail"

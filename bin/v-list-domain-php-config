@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
+[[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+source "$COMMON"
+
+format="${2:-plain}"
+domain="${1:-}"
+[[ -n "$domain" ]] || die "usage: v-list-domain-php-config DOMAIN [json|plain]"
+owner="$(resolve_domain "$domain")"
+version="$(php_version_of "$domain")"
+[[ -n "$version" ]] || die "PHP version could not be determined for $domain"
+config="$(config_file_of "$domain" "$version")"
+[[ -f "$config" ]] || die "FPM pool does not exist: $config"
+
+if [[ "$format" = json ]]; then
+    printf '{"DOMAIN":"%s","OWNER":"%s","PHP_VERSION":"%s","CONFIG":{' "$(emit_json_string "$domain")" "$(emit_json_string "$owner")" "$(emit_json_string "$version")"
+    first=1
+    for parameter in $PHP_PARAMETERS; do
+        value="$(get_state_value "$domain" "$parameter")"
+        [[ -n "$value" ]] || continue
+        [[ $first -eq 0 ]] && printf ','
+        printf '"%s":"%s"' "$parameter" "$(emit_json_string "$value")"
+        first=0
+    done
+    printf '},"CONFIG_PATH":"%s"}\n' "$(emit_json_string "$config")"
+else
+    printf 'DOMAIN %s\nOWNER %s\nPHP_VERSION %s\nCONFIG_PATH %s\n' "$domain" "$owner" "$version" "$config"
+    for parameter in $PHP_PARAMETERS; do
+        value="$(get_state_value "$domain" "$parameter")"
+        [[ -n "$value" ]] && printf '%s %s\n' "$parameter" "$value"
+    done
+fi

@@ -1,0 +1,52 @@
+#!/bin/bash
+set -e
+COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
+[[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+source "$COMMON"
+
+domain="${1:-}"
+format="${2:-json}"
+[[ -n "$domain" ]] || die "usage: v-suggest-domain-php-config DOMAIN [json|plain]"
+resolve_domain "$domain" >/tmp/myvesta-domain-php-resolve
+version="$(php_version_of "$domain")"
+[[ -n "$version" ]] || die "PHP version could not be determined for $domain"
+
+mem_total_kb="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+mem_available_kb="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
+swap_total_kb="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+cpu_count="$(getconf _NPROCESSORS_ONLN 2>/tmp/myvesta-domain-php-cpu || echo 1)"
+[[ "$cpu_count" =~ ^[0-9]+$ ]] || cpu_count=1
+pool_count="$(find /etc/php -path '*/fpm/pool.d/*.conf' -type f 2>/tmp/myvesta-domain-php-find | wc -l)"
+[[ "$pool_count" -gt 0 ]] || pool_count=1
+mem_total_mb=$((mem_total_kb / 1024))
+mem_available_mb=$((mem_available_kb / 1024))
+swap_total_mb=$((swap_total_kb / 1024))
+reserve_mb=$((mem_total_mb * 25 / 100))
+(( reserve_mb < 1024 )) && reserve_mb=1024
+php_budget_mb=$((mem_total_mb - reserve_mb))
+(( php_budget_mb < 256 )) && php_budget_mb=256
+worker_mb=160
+per_pool_mb=$((php_budget_mb / pool_count))
+max_children=$((per_pool_mb / worker_mb))
+(( max_children < 2 )) && max_children=2
+(( max_children > cpu_count * 4 )) && max_children=$((cpu_count * 4))
+(( max_children > 16 )) && max_children=16
+
+if (( max_children <= 3 )); then
+    memory_limit='256M'
+elif (( max_children <= 7 )); then
+    memory_limit='384M'
+else
+    memory_limit='512M'
+fi
+upload_limit='128M'
+post_limit='128M'
+execution_time=120
+input_time=120
+input_vars=5000
+
+if [[ "$format" = plain ]]; then
+    printf 'PHP_VERSION %s\nMEM_TOTAL_MB %s\nMEM_AVAILABLE_MB %s\nSWAP_TOTAL_MB %s\nCPU_COUNT %s\nPOOL_COUNT %s\nPHP_BUDGET_MB %s\nESTIMATED_WORKER_MB %s\nSUGGESTED_MEMORY_LIMIT %s\nSUGGESTED_PM_MAX_CHILDREN %s\nSUGGESTED_POST_MAX_SIZE %s\nSUGGESTED_UPLOAD_MAX_FILESIZE %s\nSUGGESTED_MAX_EXECUTION_TIME %s\nSUGGESTED_MAX_INPUT_TIME %s\nSUGGESTED_MAX_INPUT_VARS %s\n' "$version" "$mem_total_mb" "$mem_available_mb" "$swap_total_mb" "$cpu_count" "$pool_count" "$php_budget_mb" "$worker_mb" "$memory_limit" "$max_children" "$post_limit" "$upload_limit" "$execution_time" "$input_time" "$input_vars"
+else
+    printf '{"DOMAIN":"%s","PHP_VERSION":"%s","RESOURCES":{"MEM_TOTAL_MB":%s,"MEM_AVAILABLE_MB":%s,"SWAP_TOTAL_MB":%s,"CPU_COUNT":%s,"POOL_COUNT":%s},"BUDGET":{"RESERVED_MB":%s,"PHP_FPM_MB":%s,"ESTIMATED_WORKER_MB":%s},"SUGGESTED":{"memory_limit":"%s","pm.max_children":"%s","post_max_size":"%s","upload_max_filesize":"%s","max_execution_time":"%s","max_input_time":"%s","max_input_vars":"%s"},"SOURCE":"conservative-estimate"}\n' "$(emit_json_string "$domain")" "$(emit_json_string "$version")" "$mem_total_mb" "$mem_available_mb" "$swap_total_mb" "$cpu_count" "$pool_count" "$reserve_mb" "$php_budget_mb" "$worker_mb" "$memory_limit" "$max_children" "$post_limit" "$upload_limit" "$execution_time" "$input_time" "$input_vars"
+fi

@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+COMMON="$(dirname "$0")/../lib/domain-php-common.sh"
+[[ -f "$COMMON" ]] || COMMON="/usr/local/vesta/bin/myvesta-domain-php-common.sh"
+source "$COMMON"
+
+user="${1:-}"
+ensure_state
+for state in "$DOMAIN_STATE_ROOT"/*.conf; do
+    [[ -f "$state" ]] || continue
+    domain="$(basename "$state" .conf)"
+    owner="$(owner_of "$domain")"
+    [[ -n "$owner" ]] || continue
+    [[ -z "$user" || "$owner" = "$user" ]] || continue
+    version="$(php_version_of "$domain")"
+    [[ -n "$version" ]] || continue
+    config="$(config_file_of "$domain" "$version")"
+    [[ -f "$config" ]] || continue
+    apply_domain_config "$domain" "$version"
+done

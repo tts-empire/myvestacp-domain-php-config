@@ -1,0 +1,14 @@
+--- /usr/local/vesta/bin/v-rebuild-web-domains
++++ /usr/local/vesta/bin/v-rebuild-web-domains
+@@ -75,6 +75,11 @@
+     rebuild_web_domain_conf
+ done
+ 
++# Reapply persistent per-domain PHP-FPM settings after generated pools are rebuilt.
++if [ -x "$BIN/v-reapply-domain-php-config" ]; then
++    "$BIN/v-reapply-domain-php-config" "$user"
++fi
++
+ 
+ #----------------------------------------------------------#
+ #                       Vesta                              #
