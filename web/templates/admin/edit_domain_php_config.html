@@ -14,38 +14,85 @@
 </div>
 
 <div class="l-separator"></div>
+<!-- /.l-separator -->
 
 <div class="l-center">
+  <?php
+    $back = $_SESSION['back'];
+    if (empty($back)) {
+      $back = "location.href='/list/web/'";
+    } else {
+      $back = "location.href='".$back."'";
+    }
+  ?>
   <form id="vstobjects" name="v_edit_domain_php" method="post">
     <input type="hidden" name="token" value="<?=$_SESSION['token']?>" />
     <input type="hidden" name="save" value="save" />
 
-    <table class="data">
+    <table class="data mode-add">
       <tr class="data-add">
         <td class="data-dotted">
           <table class="data-col1">
-            <tr><td class="vst-text step-top"><?=__('Domain')?></td></tr>
-            <tr><td><input type="text" class="vst-input" value="<?=htmlentities($domain)?>" disabled></td></tr>
-            <tr><td class="vst-text input-label"><?=__('PHP Version')?></td></tr>
-            <tr><td><input type="text" class="vst-input" value="<?=htmlentities($config['PHP_VERSION'])?>" disabled></td></tr>
-            <?php if (!empty($resource_summary)) { ?>
-            <tr><td class="vst-text input-label"><?=htmlentities($resource_summary)?></td></tr>
-            <?php } ?>
+            <tr><td></td></tr>
           </table>
         </td>
         <td class="data-dotted">
-          <table class="data-col2">
+          <table class="data-col2" width="600px" id="domain-php-options">
+            <tr>
+              <td class="vst-text step-top"><?=__('Domain')?></td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" size="20" class="vst-input" value="<?=htmlentities($domain)?>" disabled>
+                <br><br>
+              </td>
+            </tr>
+            <tr>
+              <td class="vst-text"><?=__('PHP Version')?></td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" size="20" class="vst-input" value="<?=htmlentities($config['PHP_VERSION'])?>" disabled>
+                <br><br>
+              </td>
+            </tr>
+            <?php if (!empty($resource_summary)) { ?>
+            <tr>
+              <td class="vst-text">
+                <?=htmlentities($resource_summary)?>
+                <br><br>
+              </td>
+            </tr>
+            <?php } ?>
             <?php foreach ($fields as $parameter => $label) { ?>
-            <tr><td class="vst-text input-label"><?=htmlentities($label)?><span class="optional"><?=htmlentities($parameter)?></span></td></tr>
-            <tr><td><input type="text" class="vst-input" name="php_config[<?=htmlentities($parameter)?>]" value="<?=isset($values[$parameter]) ? htmlentities($values[$parameter]) : ''?>"></td></tr>
+            <tr>
+              <td class="vst-text"><?=htmlentities($label)?><span class="optional"><?=htmlentities($parameter)?></span></td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" size="20" class="vst-input" name="php_config[<?=htmlentities($parameter)?>]" value="<?=isset($values[$parameter]) ? htmlentities($values[$parameter]) : ''?>">
+                <br><br>
+              </td>
+            </tr>
             <?php } ?>
             <tr>
-              <td class="vst-text step-top">
+              <td class="vst-text input-label">
                 <label><input type="checkbox" class="vst-checkbox" name="v_restart" checked="checked"> <?=__('Restart PHP-FPM after saving')?></label>
               </td>
             </tr>
-            <tr><td class="vst-text input-label"><?=__('Suggested values are calculated from current server resources and can be changed manually.')?></td></tr>
-            <tr><td><input type="submit" class="button" name="save" value="<?=__('Save')?>"></td></tr>
+            <tr>
+              <td class="vst-text input-label"><?=__('Suggested values are calculated from current server resources and can be changed manually.')?></td>
+            </tr>
+          </table>
+          <table class="data-col2">
+            <tr>
+              <td class="step-top" width="116px">
+                <input type="submit" class="button" name="save" value="<?=__('Save')?>">
+              </td>
+              <td class="step-top">
+                <input type="button" class="button cancel" value="<?=__('Back')?>" onclick="<?=$back?>">
+              </td>
+            </tr>
           </table>
         </td>
       </tr>

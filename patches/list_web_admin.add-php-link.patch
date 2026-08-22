@@ -1,0 +1,5 @@
+--- usr/local/vesta/web/templates/admin/list_web.html
++++ usr/local/vesta/web/templates/admin/list_web.html
+@@ -172,1 +172,2 @@
++              <div class="actions-panel__col actions-panel__logs" style="background-color: #cae1e5;"><a href="/edit/domain-php-config/?domain=<?=$key?>"><?=__('PHP')?>&nbsp;&nbsp;&nbsp; <i></i></a><span class="shortcut more">&nbsp;&#8629;</span></div>
+               <div class="actions-panel__col actions-panel__logs" style="background-color: #cae1e5;"><a href="javascript:void(0)" onclick="more_button_click(<?=$i?>)"><?=__('WordPress')?>&nbsp;&nbsp;&nbsp; <i></i></a><span class="shortcut more">&nbsp;&#8629;</span></div>

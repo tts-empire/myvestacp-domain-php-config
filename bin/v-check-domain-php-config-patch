@@ -38,5 +38,11 @@ else
     printf 'FAIL admin edit_web template missing\n'
     fail=1
 fi
+if [[ -f "$VESTA_ROOT/web/templates/admin/list_web.html" ]]; then
+    grep -q '/edit/domain-php-config/' "$VESTA_ROOT/web/templates/admin/list_web.html" && printf 'OK   admin domain-list action installed\n' || printf 'WARN admin domain-list action not installed\n'
+fi
+if [[ -f "$VESTA_ROOT/web/templates/user/list_web.html" ]]; then
+    grep -q '/edit/domain-php-config/' "$VESTA_ROOT/web/templates/user/list_web.html" && printf 'OK   user domain-list action installed\n' || printf 'WARN user domain-list action not installed\n'
+fi
 
 exit "$fail"

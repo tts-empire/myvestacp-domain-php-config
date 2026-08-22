@@ -23,12 +23,22 @@ case "$VERSION_ID" in 10|11|12) ;; *) echo "WARNING: Debian $VERSION_ID is not i
 [[ -x "$VESTA_ROOT/bin/v-search-domain-owner" ]] || die "unsupported MyVesta: v-search-domain-owner missing"
 [[ -x "$VESTA_ROOT/bin/v-get-php-version-of-domain" ]] || die "unsupported MyVesta: PHP version helper missing"
 [[ -f "$VESTA_ROOT/web/templates/admin/edit_web.html" ]] || die "MyVesta admin edit_web template missing"
-[[ -f "$VESTA_ROOT/web/templates/user/edit_web.html" ]] || die "MyVesta user edit_web template missing"
+[[ -f "$VESTA_ROOT/web/templates/admin/list_web.html" ]] || die "MyVesta admin list_web template missing"
+[[ -f "$VESTA_ROOT/web/templates/user/list_web.html" ]] || die "MyVesta user list_web template missing"
 command -v patch >/tmp/myvesta-domain-php-check 2>&1 || die "patch command is required"
 
 if [[ "$DRY_RUN" = yes ]]; then
-    for patch_file in "$REPO_ROOT"/patches/*.patch; do
-        patch --dry-run --fuzz=3 --forward -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || patch --dry-run --fuzz=3 --reverse -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || die "patch conflict: $patch_file"
+    patch_specs=(
+        "edit_web.html.add-link.patch:3"
+        "v-rebuild-web-domains.add-hook.patch:3"
+        "list_web_admin.add-php-link.patch:0"
+        "list_web_user.add-php-link.patch:0"
+    )
+    for patch_spec in "${patch_specs[@]}"; do
+        patch_name="${patch_spec%:*}"
+        patch_fuzz="${patch_spec##*:}"
+        patch_file="$REPO_ROOT/patches/$patch_name"
+        patch --dry-run --fuzz="$patch_fuzz" --forward -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || patch --dry-run --fuzz="$patch_fuzz" --reverse -p0 -d / < "$patch_file" >/tmp/myvesta-domain-php-check 2>&1 || die "patch conflict: $patch_file"
         echo "Preflight OK: $patch_file"
     done
     echo "Preflight OK: no files changed"
@@ -62,12 +72,13 @@ apply_patch_file() {
     local patch_file="$1"
     local target="$2"
     local marker="$3"
+    local patch_fuzz="${4:-0}"
     if grep -Fq "$marker" "$target"; then
         echo "Already applied: $patch_file"
         return 0
     fi
     [[ -f "$target" ]] && install -D -m 0600 "$target" "$BACKUP_ROOT$target"
-    if ! patch --batch --fuzz=3 --forward -p0 -d / < "$patch_file"; then
+    if ! patch --batch --fuzz="$patch_fuzz" --forward -p0 -d / < "$patch_file"; then
         die "conflict detected while applying $patch_file"
     fi
     printf 'PATCH:%s\n' "$patch_file" >> "$manifest"
@@ -75,13 +86,18 @@ apply_patch_file() {
 
 apply_patch_file "$REPO_ROOT/patches/edit_web.html.add-link.patch" \
     "$VESTA_ROOT/web/templates/admin/edit_web.html" \
-    'PHP Domain Configuration'
+    'PHP Domain Configuration' \
+    3
 apply_patch_file "$REPO_ROOT/patches/v-rebuild-web-domains.add-hook.patch" \
     "$VESTA_ROOT/bin/v-rebuild-web-domains" \
-    'v-reapply-domain-php-config'
-apply_patch_file "$REPO_ROOT/patches/edit_web_user.html.add-link.patch" \
-    "$VESTA_ROOT/web/templates/user/edit_web.html" \
-    'PHP Domain Configuration'
+    'v-reapply-domain-php-config' \
+    3
+apply_patch_file "$REPO_ROOT/patches/list_web_admin.add-php-link.patch" \
+    "$VESTA_ROOT/web/templates/admin/list_web.html" \
+    '/edit/domain-php-config/'
+apply_patch_file "$REPO_ROOT/patches/list_web_user.add-php-link.patch" \
+    "$VESTA_ROOT/web/templates/user/list_web.html" \
+    '/edit/domain-php-config/'
 
 echo "Installed MyVesta domain PHP configuration patch."
 echo "Backup: $BACKUP_ROOT"
