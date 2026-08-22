@@ -55,13 +55,13 @@ sections before using this on a production server.
 
 ## Screenshot
 
-### Domain PHP-FPM settings
-
-[![myVesta domain PHP-FPM configuration page](docs/assets/domain-php-config.png)](docs/assets/domain-php-config.png)
-
 ### PHP action in the WEB domain list
 
 [![PHP action highlighted in the myVesta WEB domain list](docs/assets/domain-list-php-action.png)](docs/assets/domain-list-php-action.png)
+
+### Domain PHP-FPM settings
+
+[![myVesta domain PHP-FPM configuration page](docs/assets/domain-php-config.png)](docs/assets/domain-php-config.png)
 
 Both screenshots are rendered from the actual myVesta templates and stylesheet
 using fully synthetic documentation data. They contain no production domain,
