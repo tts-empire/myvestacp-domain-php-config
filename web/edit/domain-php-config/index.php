@@ -4,11 +4,6 @@ $TAB = 'WEB';
 
 include($_SERVER['DOCUMENT_ROOT'].'/inc/main.php');
 
-if ($_SESSION['user'] != 'admin') {
-    header('Location: /list/user');
-    exit;
-}
-
 $domain = isset($_GET['domain']) ? $_GET['domain'] : '';
 if (!preg_match('/^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/', $domain)) {
     header('Location: /list/web/');
@@ -20,6 +15,10 @@ exec(VESTA_CMD.'v-search-domain-owner '.$domain_arg, $owner_output, $owner_statu
 $owner = trim(implode('', $owner_output));
 unset($owner_output);
 if ($owner_status != 0 || empty($owner)) {
+    header('Location: /list/web/');
+    exit;
+}
+if ($_SESSION['user'] != 'admin' && $_SESSION['user'] != $owner) {
     header('Location: /list/web/');
     exit;
 }

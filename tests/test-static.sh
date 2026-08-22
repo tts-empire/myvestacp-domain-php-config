@@ -10,8 +10,9 @@ for file in "$ROOT"/web/edit/domain-php-config/*.php; do
 done
 
 if [[ -d /usr/local/vesta && -f /usr/local/vesta/web/templates/admin/edit_web.html ]]; then
-    patch --dry-run --forward -p0 -d / < "$ROOT/patches/edit_web.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1 || patch --dry-run --reverse -p0 -d / < "$ROOT/patches/edit_web.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1
-    patch --dry-run --forward -p0 -d / < "$ROOT/patches/v-rebuild-web-domains.add-hook.patch" >/tmp/myvesta-domain-php-patch 2>&1 || patch --dry-run --reverse -p0 -d / < "$ROOT/patches/v-rebuild-web-domains.add-hook.patch" >/tmp/myvesta-domain-php-patch 2>&1
+    patch --dry-run --fuzz=3 --forward -p0 -d / < "$ROOT/patches/edit_web.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1 || patch --dry-run --fuzz=3 --reverse -p0 -d / < "$ROOT/patches/edit_web.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1
+    patch --dry-run --fuzz=3 --forward -p0 -d / < "$ROOT/patches/v-rebuild-web-domains.add-hook.patch" >/tmp/myvesta-domain-php-patch 2>&1 || patch --dry-run --fuzz=3 --reverse -p0 -d / < "$ROOT/patches/v-rebuild-web-domains.add-hook.patch" >/tmp/myvesta-domain-php-patch 2>&1
+    patch --dry-run --fuzz=3 --forward -p0 -d / < "$ROOT/patches/edit_web_user.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1 || patch --dry-run --fuzz=3 --reverse -p0 -d / < "$ROOT/patches/edit_web_user.html.add-link.patch" >/tmp/myvesta-domain-php-patch 2>&1
 fi
 
 if [[ -n "${MYVESTA_TEST_DOMAIN:-}" ]]; then

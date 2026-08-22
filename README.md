@@ -2,7 +2,7 @@
 
 Installable domain-level PHP-FPM configuration for existing MyVestaCP servers.
 
-The patch follows the existing MyVesta web dialect and does not replace the panel. It adds a native-style section to the domain editor, stores settings outside generated pool files, reapplies them after web rebuilds, and validates the selected PHP-FPM service before restarting it.
+The patch follows the existing MyVesta web dialect and does not replace the panel. It adds a native-style section to the domain editor for both administrators and domain owners, stores settings outside generated pool files, reapplies them after web rebuilds, and validates the selected PHP-FPM service before restarting it.
 
 ## Compatibility
 
